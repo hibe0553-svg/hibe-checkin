@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#ffffff">
+<title>HIBE-Lab Daily Check-in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@800&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+/* Layout: a lab header on top, then one task per screen in a narrow column,
+   big answer cards, and Back / Next kept within reach at the bottom. */
+:root {
+  color-scheme: light;      /* light only, even when the phone is in dark mode */
+  --bg: #f5f5f3;            /* page */
+  --surface: #ffffff;       /* header, cards */
+  --ink: #1c1d1f;           /* text */
+  --ink-2: #55575c;         /* secondary text, icons */
+  --line: #d9d9d5;          /* borders */
+  --brand: #e07b6e;         /* HIBE-Lab coral, used for the wordmark */
+  --brand-shadow: #d9d9d9;
+  --accent: #b4473b;        /* deeper coral: buttons, selection, links */
+  --accent-ink: #ffffff;
+  --accent-soft: #fbece9;
+  --focus: #1f5fbf;
+  --note: #fdecea; --note-ink: #a12a1f;
+  --banner: #fdf0cf; --banner-ink: #5a4300;
+  --t1: #2456b4; --t2: #4f8fdb; --t3: #8a8f94; --t4: #e0873a; --t5: #c8432b;  /* cold to hot */
+  --shadow: 0 1px 2px rgb(28 29 31 / 0.05), 0 2px 8px rgb(28 29 31 / 0.05);
+  --font: "Source Sans 3", "Source Sans Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --slab: "Roboto Slab", Rockwell, Georgia, serif;
+  --emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+/* Text starts at 18px (most sites use 16px). The script at the bottom raises it,
+   up to 26px, when the phone's own text size setting is larger. */
+html { font-size: 112.5%; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  margin: 0;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 1.25rem;
+  line-height: 1.5;
+  -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; touch-action: manipulation; }   /* no double-tap zoom on buttons */
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+h1 { margin: 0; font-size: 1.75rem; line-height: 1.2; font-weight: 700; text-wrap: balance; }
+h1:focus { outline: none; }
+p { margin: 0; }
+
+.banner {
+  padding: 6px 16px;
+  background: var(--banner);
+  color: var(--banner-ink);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Lab header */
+.labbar {
+  padding-inline: 16px;
+  padding-block: 14px 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.labbar-inner {
+  max-width: 34rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+.wordmark {
+  padding-left: 0.2em;              /* balances the letter-spacing after the last letter */
+  color: var(--brand);
+  font-family: var(--slab);
+  font-size: 1.875rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0.2em;
+  text-shadow: 2px 2px 0 var(--brand-shadow);
+}
+.labname { font-size: 1rem; letter-spacing: 0.03em; text-wrap: balance; }
+.labname b { font-weight: 700; }
+.school { color: var(--ink-2); font-size: 0.9375rem; }
+body.compact .labname,
+body.compact .school { display: none; }
+body.compact .wordmark { font-size: 1.375rem; }
+body.compact .labbar { padding-block: 10px; }
+
+.page {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding-inline: 16px;
+  padding-block: 18px 24px;
+}
+.screen { display: flex; flex-direction: column; gap: 16px; }
+.eyebrow {
+  color: var(--accent);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.lead { color: var(--ink-2); font-size: 1.25rem; }
+
+/* Screen 1: pick your animal */
+.animals {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.animal {
+  flex: 0 0 calc((100% - 20px) / 3);
+  min-width: 0;
+  min-height: 6.25rem;
+  padding: 10px 4px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease, background-color 0.12s ease;
+}
+@media (min-width: 520px) {
+  .animal { flex-basis: calc((100% - 30px) / 4); }
+}
+.animal:active { transform: scale(0.96); }
+.animal.picked { border-color: var(--accent); background: var(--accent-soft); }
+.animal .emoji { font-family: var(--emoji); font-size: 2.75rem; line-height: 1; }
+.animal .name { font-size: 1.0625rem; font-weight: 600; line-height: 1.15; text-align: center; }
+/* Larger text, small phones or a zoomed-in page: 2 animals per row */
+.big-text .animal { flex-basis: calc((100% - 10px) / 2); }
+.big-text .animal .name { font-size: 1.125rem; }
+@media (max-width: 340px) {
+  .animal { flex-basis: calc((100% - 10px) / 2); }
+}
+@media (min-width: 560px) {
+  .big-text .animal { flex-basis: calc((100% - 20px) / 3); }
+}
+
+/* Screen 2: the questions */
+.who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px 6px 6px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  flex-wrap: wrap;
+}
+.avatar {
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  font-family: var(--emoji);
+  font-size: 1.625rem;
+  line-height: 1;
+}
+.who-name { flex: 1; min-width: 0; font-size: 1.25rem; font-weight: 700; }
+.link {
+  min-height: 2.75rem;
+  padding: 4px 8px;
+  background: none;
+  border: 0;
+  color: var(--accent);
+  font-size: 1.125rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.progress { display: flex; flex-direction: column; gap: 8px; }
+.progress-text { color: var(--ink-2); font-size: 1.0625rem; font-weight: 700; letter-spacing: 0.02em; }
+.steps { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; }
+.steps span { height: 6px; border-radius: 3px; background: var(--line); }
+.steps span.on { background: var(--accent); }
+
+.options { display: flex; flex-direction: column; gap: 10px; }
+.option {
+  width: 100%;
+  min-height: 4.75rem;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+.option .icon { flex: none; width: 2.75rem; height: 3rem; display: grid; place-items: center; color: var(--ink-2); }
+.option .icon svg { width: 100%; height: 100%; }
+.option .label { flex: 1; min-width: 0; }
+.tick {
+  flex: none;
+  width: 1.875rem;
+  height: 1.875rem;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+}
+.option[aria-checked="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1.5px var(--accent);
+}
+.option[aria-checked="true"] .tick { background: var(--accent); border-color: var(--accent); }
+.option[aria-checked="true"] .tick::after {
+  content: "";
+  width: 0.5rem;
+  height: 0.9rem;
+  margin-top: -3px;
+  border: solid var(--accent-ink);
+  border-width: 0 3px 3px 0;
+  transform: rotate(45deg);
+}
+
+.notice {
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--note);
+  color: var(--note-ink);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin-inline: -16px;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  gap: 12px;
+  background: var(--bg);
+}
+.actions::before {                  /* soft fade where answers scroll under the buttons */
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -18px;
+  height: 18px;
+  background: linear-gradient(to bottom, transparent, var(--bg));
+  pointer-events: none;
+}
+.btn {
+  min-height: 4rem;
+  padding: 0 22px;
+  border: 1.5px solid transparent;
+  border-radius: 12px;
+  font-size: 1.375rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn-primary { flex: 1; background: var(--accent); color: var(--accent-ink); }
+.btn-secondary { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.btn:disabled { opacity: 0.75; cursor: progress; }
+
+/* Screen 3: thank you */
+.done { align-items: center; text-align: center; padding-top: 12px; }
+.mark {
+  width: 6rem;
+  height: 6rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.mark svg { width: 3rem; height: 3rem; }
+.saved { font-size: 1.375rem; }
+.purpose { color: var(--ink-2); font-size: 1.25rem; max-width: 26rem; text-wrap: pretty; }
+.demo {
+  align-self: stretch;
+  margin-top: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1.5px dashed var(--line);
+  border-radius: var(--radius);
+  text-align: left;
+}
+.demo-title {
+  color: var(--ink-2);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.demo .btn { width: 100%; min-height: 3.25rem; font-size: 1.125rem; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .screen.enter { animation: rise 0.22s ease-out; }
+  @keyframes rise {
+    from { opacity: 0.35; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
+}
+</style>
+</head>
+<body>
+<div class="banner" id="demo-banner" hidden>Demo version · answers are not saved</div>
+
+<header class="labbar">
+  <div class="labbar-inner">
+    <div class="wordmark" aria-label="HIBE-Lab">HIBE-LAB</div>
+    <p class="labname"><b>H</b>ealthy and <b>I</b>ntelligent <b>B</b>uilt <b>E</b>nvironment Lab</p>
+    <p class="school">New Jersey Institute of Technology</p>
+  </div>
+</header>
+
+<main class="page">
+  <section class="screen" id="screen-pick" aria-labelledby="pick-title" hidden>
+    <p class="eyebrow">Daily check-in · <span id="today"></span></p>
+    <h1 id="pick-title" tabindex="-1">Tap your animal</h1>
+    <p class="lead">This tells us who you are. Your phone will remember it next time.</p>
+    <div class="animals" id="animal-grid"></div>
+  </section>
+
+  <section class="screen" id="screen-question" aria-labelledby="q-text" hidden>
+    <div class="who">
+      <span class="avatar" id="who-emoji" aria-hidden="true"></span>
+      <span class="who-name" id="who-name"></span>
+      <button type="button" class="link" id="not-me">Not you?</button>
+    </div>
+    <div class="progress">
+      <p class="progress-text" id="q-progress"></p>
+      <div class="steps" id="q-steps" aria-hidden="true"></div>
+    </div>
+    <h1 id="q-text" tabindex="-1"></h1>
+    <div class="options" id="q-options" role="radiogroup" aria-labelledby="q-text"></div>
+    <p class="notice" id="q-notice" role="alert" hidden></p>
+    <div class="actions">
+      <button type="button" class="btn btn-secondary" id="q-back" hidden>Back</button>
+      <button type="button" class="btn btn-primary" id="q-next">Next</button>
+    </div>
+  </section>
+
+  <section class="screen done" id="screen-thanks" aria-labelledby="thanks-title" hidden>
+    <div class="mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <h1 id="thanks-title" tabindex="-1"></h1>
+    <p class="saved" id="thanks-time"></p>
+    <p class="purpose">Your answers help our research on indoor comfort and health. You can close this page now.</p>
+    <div class="demo" id="demo-panel" hidden>
+      <p class="demo-title">Demo: nothing was sent</p>
+      <button type="button" class="btn btn-secondary" id="demo-rescan">Scan again on this phone</button>
+      <button type="button" class="btn btn-secondary" id="demo-newphone">Scan from a new phone</button>
+    </div>
+  </section>
+</main>
+
+<script>
+// Step 4: paste your Apps Script Web app link (ending in /exec) here.
+// While it is empty, the page runs as a demo and sends nothing.
+const API_URL = "";
+const DEMO = API_URL === "";
+const STORE_KEY = "hibe-checkin-animal";
+
+// One animal per patient. Each patient is told their animal when they join.
+// Alphabetical, so patients and staff can find one quickly.
+const ANIMALS = [
+  { id: "bee", emoji: "🐝", name: "Bee" },
+  { id: "butterfly", emoji: "🦋", name: "Butterfly" },
+  { id: "camel", emoji: "🐫", name: "Camel" },
+  { id: "cow", emoji: "🐄", name: "Cow" },
+  { id: "dolphin", emoji: "🐬", name: "Dolphin" },
+  { id: "elephant", emoji: "🐘", name: "Elephant" },
+  { id: "frog", emoji: "🐸", name: "Frog" },
+  { id: "horse", emoji: "🐴", name: "Horse" },
+  { id: "ladybug", emoji: "🐞", name: "Ladybug" },
+  { id: "lion", emoji: "🦁", name: "Lion" },
+  { id: "monkey", emoji: "🐒", name: "Monkey" },
+  { id: "octopus", emoji: "🐙", name: "Octopus" },
+  { id: "owl", emoji: "🦉", name: "Owl" },
+  { id: "panda", emoji: "🐼", name: "Panda" },
+  { id: "penguin", emoji: "🐧", name: "Penguin" },
+  { id: "rabbit", emoji: "🐰", name: "Rabbit" },
+  { id: "rooster", emoji: "🐓", name: "Rooster" },
+  { id: "sheep", emoji: "🐑", name: "Sheep" },
+  { id: "snail", emoji: "🐌", name: "Snail" },
+  { id: "turtle", emoji: "🐢", name: "Turtle" },
+];
+
+// The questions, one per screen, in order. The answer words are what the Sheet stores.
+// "icon" adds a small picture to each answer; questions without it show words only.
+const QUESTIONS = [
+  { id: "feel", text: "How do you feel right now?", icon: "thermometer",
+    options: ["Cold", "Cool", "Neutral", "Warm", "Hot"] },
+  { id: "prefer", text: "Would you prefer the room to be warmer or cooler?", icon: "direction",
+    options: ["Warmer", "Cooler", "No change"] },
+  { id: "action", text: "When you feel too hot or too cold, what do you usually do?",
+    options: ["Adjust the thermostat", "Change clothing", "Move to another room", "Ask for help", "Nothing", "Other"] },
+  { id: "memory", text: "Have you noticed any changes in your memory recently?",
+    options: ["No change", "A little worse", "Much worse", "Better", "Not sure"] },
+  { id: "medication", text: "Are you currently taking any medication for memory problems?",
+    options: ["Yes", "No", "Not sure", "Prefer not to answer"] },
+  { id: "wearing", text: "What are you wearing right now?", icon: "clothing",
+    options: ["Short-sleeved shirt", "Long-sleeved shirt", "Sweater or jacket", "Other"] },
+  { id: "sensitivity", text: "Have you noticed any changes in how sensitive you are to heat or cold recently?",
+    options: ["No change", "More sensitive", "Less sensitive", "Not sure"] },
+];
+
+// --- Small pictures for the answers ------------------------------------------
+const ICONS = {
+  // A thermometer that fills up from cold (1) to hot (5)
+  thermometer(value, index) {
+    const level = index + 1;
+    const fill = [0, 4, 10, 16, 22, 28][level];
+    const color = `fill: var(--t${level})`;
+    return `<svg viewBox="0 0 28 56" focusable="false">
+      <rect x="12" y="${39 - fill}" width="4" height="${fill + 6}" rx="2" style="${color}"/>
+      <rect x="9" y="3" width="10" height="38" rx="5" fill="none" stroke="currentColor" stroke-width="2"/>
+      <circle cx="14" cy="45" r="8" stroke="currentColor" stroke-width="2" style="${color}"/>
+    </svg>`;
+  },
+  // Arrow up for warmer, arrow down for cooler, "=" for no change
+  direction(value) {
+    const shapes = {
+      "Warmer": ["M24 35V14M16 22l8-8 8 8", "var(--t5)"],
+      "Cooler": ["M24 13v21M16 26l8 8 8-8", "var(--t1)"],
+      "No change": ["M15 20h18M15 28h18", "var(--t3)"],
+    };
+    const [path, color] = shapes[value];
+    return `<svg viewBox="0 0 48 48" focusable="false">
+      <circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="${path}" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" style="stroke: ${color}"/>
+    </svg>`;
+  },
+  // Simple outlines of a T-shirt, a long-sleeved shirt and a jacket
+  clothing(value) {
+    const neck = "C28 11 26 12 24 12C22 12 20 11 18 8Z";
+    const longSleeve = `M18 8L11 11L6 16L3 40L9 41L13 23L14 22L14 42L34 42L34 22L35 23L39 41L45 40L42 16L37 11L30 8${neck}`;
+    const shapes = {
+      "Short-sleeved shirt": `<path d="M18 8L11 11L4 18L9 25L14 21L14 42L34 42L34 21L39 25L44 18L37 11L30 8${neck}"/>`,
+      "Long-sleeved shirt": `<path d="${longSleeve}"/>`,
+      "Sweater or jacket": `<path d="${longSleeve}"/><path d="M24 12V42M18 8L21 15L24 12M30 8L27 15L24 12M17 34H21M27 34H31"/>`,
+      "Other": `<circle cx="13" cy="25" r="2.5" fill="currentColor" stroke="none"/><circle cx="24" cy="25" r="2.5" fill="currentColor" stroke="none"/><circle cx="35" cy="25" r="2.5" fill="currentColor" stroke="none"/>`,
+    };
+    return `<svg viewBox="0 0 48 48" focusable="false" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">${shapes[value]}</svg>`;
+  },
+};
+
+const $ = (selector) => document.querySelector(selector);
+
+// --- Text size: follow the phone's own setting, from 18px up to 26px ----------
+// Android browsers already apply the phone's text size to the page. iPhones only
+// share it through a special system font size, so the page reads that one too.
+function fitTextSize() {
+  const root = document.documentElement;
+  root.style.fontSize = "";
+  let size = parseFloat(getComputedStyle(root).fontSize);       // 18px, or more if the phone asks
+  const probe = document.createElement("span");
+  probe.style.font = "-apple-system-body";                        // iPhone: Settings > Display > Text Size
+  if (probe.style.font) {
+    document.body.append(probe);
+    size = Math.max(size, parseFloat(getComputedStyle(probe).fontSize) * 18 / 17);
+    probe.remove();
+  }
+  size = Math.round(Math.min(Math.max(size, 18), 26));
+  root.style.fontSize = `${size}px`;
+  root.classList.toggle("big-text", size >= 22);                 // 2 animals per row
+}
+fitTextSize();
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const state = { animal: null, step: 0, answers: {}, picking: false, sending: false };
+let remembered = null;   // used when the browser refuses to store anything
+
+// --- The phone's memory ----------------------------------------------------
+function loadAnimal() {
+  try { return localStorage.getItem(STORE_KEY) || remembered; } catch { return remembered; }
+}
+function saveAnimal(id) {
+  remembered = id;
+  try { localStorage.setItem(STORE_KEY, id); } catch {}
+}
+function forgetAnimal() {
+  remembered = null;
+  try { localStorage.removeItem(STORE_KEY); } catch {}
+}
+const findAnimal = (id) => ANIMALS.find((a) => a.id === id);
+
+// --- Switching screens -------------------------------------------------------
+function show(id, animate = true) {
+  for (const screen of document.querySelectorAll(".screen")) screen.hidden = screen.id !== id;
+  document.body.classList.toggle("compact", id === "screen-question");
+  const screen = document.getElementById(id);
+  screen.classList.remove("enter");
+  if (animate && !reduceMotion) {
+    void screen.offsetWidth;          // restart the animation
+    screen.classList.add("enter");
+  }
+  window.scrollTo(0, 0);
+  if (animate) screen.querySelector("h1").focus({ preventScroll: true });
+}
+
+// --- Screen 1: pick your animal ----------------------------------------------
+function renderPicker() {
+  const grid = $("#animal-grid");
+  grid.replaceChildren();
+  for (const animal of ANIMALS) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "animal";
+    button.id = `animal-${animal.id}`;
+    const picture = document.createElement("span");
+    picture.className = "emoji";
+    picture.setAttribute("aria-hidden", "true");
+    picture.textContent = animal.emoji;
+    const name = document.createElement("span");
+    name.className = "name";
+    name.textContent = animal.name;
+    button.append(picture, name);
+    button.addEventListener("click", () => pickAnimal(animal, button));
+    grid.append(button);
+  }
+}
+
+function pickAnimal(animal, button) {
+  if (state.picking) return;
+  state.picking = true;
+  button.classList.add("picked");
+  saveAnimal(animal.id);
+  state.animal = animal.id;
+  setTimeout(() => {
+    state.picking = false;
+    startQuestions(true);
+  }, reduceMotion ? 0 : 250);
+}
+
+// --- Screen 2: the questions --------------------------------------------------
+function startQuestions(animate) {
+  state.step = 0;
+  state.answers = {};
+  renderQuestion();
+  show("screen-question", animate);
+}
+
+const isLast = () => state.step === QUESTIONS.length - 1;
+
+function renderQuestion() {
+  const animal = findAnimal(state.animal);
+  $("#who-emoji").textContent = animal.emoji;
+  $("#who-name").textContent = animal.name;
+
+  const question = QUESTIONS[state.step];
+  $("#q-progress").textContent = `Question ${state.step + 1} of ${QUESTIONS.length}`;
+  const steps = $("#q-steps");
+  steps.replaceChildren();
+  QUESTIONS.forEach((_, i) => {
+    const bar = document.createElement("span");
+    if (i <= state.step) bar.className = "on";
+    steps.append(bar);
+  });
+  $("#q-text").textContent = question.text;
+
+  const box = $("#q-options");
+  box.replaceChildren();
+  question.options.forEach((value, i) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "option";
+    button.id = `option-${question.id}-${i}`;
+    button.dataset.value = value;
+    button.setAttribute("role", "radio");
+    button.setAttribute("aria-checked", String(state.answers[question.id] === value));
+    if (question.icon) {
+      const icon = document.createElement("span");
+      icon.className = "icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.innerHTML = ICONS[question.icon](value, i);
+      button.append(icon);
+    }
+    const label = document.createElement("span");
+    label.className = "label";
+    label.textContent = value;
+    const tick = document.createElement("span");
+    tick.className = "tick";
+    tick.setAttribute("aria-hidden", "true");
+    button.append(label, tick);
+    button.addEventListener("click", () => choose(question, value));
+    box.append(button);
+  });
+
+  $("#q-back").hidden = state.step === 0;
+  $("#q-next").textContent = isLast() ? "Send" : "Next";
+  hideNotice();
+}
+
+function choose(question, value) {
+  state.answers[question.id] = value;
+  for (const button of $("#q-options").children) {
+    button.setAttribute("aria-checked", String(button.dataset.value === value));
+  }
+  hideNotice();
+}
+
+function showNotice(text) {
+  const notice = $("#q-notice");
+  notice.textContent = text;
+  notice.hidden = false;
+}
+function hideNotice() { $("#q-notice").hidden = true; }
+
+async function next() {
+  if (state.sending) return;
+  const question = QUESTIONS[state.step];
+  if (!state.answers[question.id]) {
+    showNotice("Please tap one answer above.");
+    return;
+  }
+  if (!isLast()) {
+    state.step += 1;
+    renderQuestion();
+    show("screen-question");
+    return;
+  }
+  await send();
+}
+
+function back() {
+  if (state.step === 0) return;
+  state.step -= 1;
+  renderQuestion();
+  show("screen-question");
+}
+
+async function send() {
+  const button = $("#q-next");
+  state.sending = true;
+  button.disabled = true;
+  button.textContent = "Sending…";
+  try {
+    const result = await sendAnswers({ animal: state.animal, answers: state.answers });
+    showThanks(new Date(result.saved_at || Date.now()));
+  } catch {
+    showNotice("Your answers weren't sent. Check that the phone has internet, then tap Send again.");
+  } finally {
+    state.sending = false;
+    button.disabled = false;
+    button.textContent = isLast() ? "Send" : "Next";
+  }
+}
+
+async function sendAnswers(payload) {
+  if (DEMO) {
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    return { ok: true, saved_at: new Date().toISOString() };
+  }
+  // A plain-text body keeps this a "simple" request that Apps Script accepts from another site.
+  const response = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
+  const data = await response.json();
+  if (!data.ok) throw new Error(data.error || "Not saved");
+  return data;
+}
+
+// --- Screen 3: thank you -------------------------------------------------------
+function showThanks(when) {
+  const animal = findAnimal(state.animal);
+  $("#thanks-title").textContent = `Thank you, ${animal.name}!`;
+  const time = when.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  $("#thanks-time").textContent = `Your answers were saved at ${time}.`;
+  show("screen-thanks");
+}
+
+// --- Start: does this phone remember an animal? ----------------------------------
+function start(animate) {
+  state.step = 0;
+  state.answers = {};
+  const saved = loadAnimal();
+  if (saved && findAnimal(saved)) {
+    state.animal = saved;
+    startQuestions(animate);
+  } else {
+    state.animal = null;
+    renderPicker();
+    show("screen-pick", animate);
+  }
+}
+
+$("#not-me").addEventListener("click", () => { forgetAnimal(); start(true); });
+$("#q-next").addEventListener("click", next);
+$("#q-back").addEventListener("click", back);
+$("#demo-rescan").addEventListener("click", () => start(true));
+$("#demo-newphone").addEventListener("click", () => { forgetAnimal(); start(true); });
+
+$("#today").textContent = new Date().toLocaleDateString(undefined, {
+  weekday: "long", month: "long", day: "numeric",
+});
+$("#demo-banner").hidden = !DEMO;
+$("#demo-panel").hidden = !DEMO;
+start(false);
+</script>
+</body>
+</html>
