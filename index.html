@@ -300,6 +300,7 @@ body.compact .labbar { padding-block: 10px; }
   color: var(--accent-ink);
 }
 .mark svg { width: 3rem; height: 3rem; }
+.mark.soft { background: var(--accent-soft); color: var(--accent); }   /* "scan your card" screen */
 .saved { font-size: 1.375rem; }
 .purpose { color: var(--ink-2); font-size: 1.25rem; max-width: 26rem; text-wrap: pretty; }
 .demo {
@@ -328,6 +329,8 @@ body.compact .labbar { padding-block: 10px; }
     from { opacity: 0.35; transform: translateY(8px); }
     to { opacity: 1; transform: none; }
   }
+  .mark.busy svg { animation: breathe 1.4s ease-in-out infinite; }   /* while checking the card */
+  @keyframes breathe { 50% { opacity: 0.3; } }
 }
 </style>
 </head>
@@ -343,10 +346,19 @@ body.compact .labbar { padding-block: 10px; }
 </header>
 
 <main class="page">
+  <!-- Shown when the phone has no code from a check-in card, or the code is wrong -->
+  <section class="screen done" id="screen-card" aria-labelledby="card-title" hidden>
+    <div class="mark soft" id="card-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5V6a2 2 0 0 1 2-2h2.5M15.5 4H18a2 2 0 0 1 2 2v2.5M20 15.5V18a2 2 0 0 1-2 2h-2.5M8.5 20H6a2 2 0 0 1-2-2v-2.5M7.5 12h9"/></svg>
+    </div>
+    <h1 id="card-title" tabindex="-1"></h1>
+    <p class="purpose" id="card-text"></p>
+  </section>
+
   <section class="screen" id="screen-pick" aria-labelledby="pick-title" hidden>
     <p class="eyebrow">Daily check-in · <span id="today"></span></p>
     <h1 id="pick-title" tabindex="-1">Tap your animal</h1>
-    
+    <p class="lead">This tells us who you are. Your phone will remember it next time.</p>
     <div class="animals" id="animal-grid"></div>
   </section>
 
@@ -387,20 +399,34 @@ body.compact .labbar { padding-block: 10px; }
 <script>
 // Step 4: paste your Apps Script Web app link (ending in /exec) here.
 // While it is empty, the page runs as a demo and sends nothing.
+// This file is public on GitHub, so it holds no secrets: the check-in code
+// is not in here. It arrives in the link inside the card's QR code.
 const API_URL = "https://script.google.com/macros/s/AKfycbxay1wf4zlL2AXRV7B2kMeGunFnGObsCiLl8Hrp1fiSdMdAirTk1IFFYjBWUqdoTJ0qJA/exec";
 const DEMO = API_URL === "";
-const STORE_KEY = "hibe-checkin-animal";
+
+// What the phone remembers between visits
+const ANIMAL_STORE = "hibe-checkin-animal";     // which animal this phone belongs to
+const CODE_STORE = "hibe-checkin-code";         // the secret code from the card's QR link
+const CHECKED_STORE = "hibe-checkin-checked";   // the last code the Sheet said was right
 
 // One animal per patient. Each patient is told their animal when they join.
 // Alphabetical, so patients and staff can find one quickly.
 const ANIMALS = [
+  { id: "bear", emoji: "🐻", name: "Bear" },
   { id: "bee", emoji: "🐝", name: "Bee" },
   { id: "butterfly", emoji: "🦋", name: "Butterfly" },
   { id: "camel", emoji: "🐫", name: "Camel" },
+  { id: "cat", emoji: "🐈", name: "Cat" },
   { id: "cow", emoji: "🐄", name: "Cow" },
+  { id: "crab", emoji: "🦀", name: "Crab" },
+  { id: "deer", emoji: "🦌", name: "Deer" },
   { id: "dolphin", emoji: "🐬", name: "Dolphin" },
+  { id: "duck", emoji: "🦆", name: "Duck" },
   { id: "elephant", emoji: "🐘", name: "Elephant" },
+  { id: "fish", emoji: "🐠", name: "Fish" },
+  { id: "fox", emoji: "🦊", name: "Fox" },
   { id: "frog", emoji: "🐸", name: "Frog" },
+  { id: "giraffe", emoji: "🦒", name: "Giraffe" },
   { id: "horse", emoji: "🐴", name: "Horse" },
   { id: "ladybug", emoji: "🐞", name: "Ladybug" },
   { id: "lion", emoji: "🦁", name: "Lion" },
@@ -414,6 +440,8 @@ const ANIMALS = [
   { id: "sheep", emoji: "🐑", name: "Sheep" },
   { id: "snail", emoji: "🐌", name: "Snail" },
   { id: "turtle", emoji: "🐢", name: "Turtle" },
+  { id: "whale", emoji: "🐳", name: "Whale" },
+  { id: "zebra", emoji: "🦓", name: "Zebra" },
 ];
 
 // The questions, one per screen, in order. The answer words are what the Sheet stores.
@@ -498,19 +526,19 @@ function fitTextSize() {
 fitTextSize();
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const state = { animal: null, step: 0, answers: {}, picking: false, sending: false };
-let remembered = null;   // used when the browser refuses to store anything
+const memory = {};   // used when the browser refuses to store anything
 
 // --- The phone's memory ----------------------------------------------------
-function loadAnimal() {
-  try { return localStorage.getItem(STORE_KEY) || remembered; } catch { return remembered; }
+function load(name) {
+  try { return localStorage.getItem(name) || memory[name] || null; } catch { return memory[name] || null; }
 }
-function saveAnimal(id) {
-  remembered = id;
-  try { localStorage.setItem(STORE_KEY, id); } catch {}
+function save(name, value) {
+  memory[name] = value;
+  try { localStorage.setItem(name, value); } catch {}
 }
-function forgetAnimal() {
-  remembered = null;
-  try { localStorage.removeItem(STORE_KEY); } catch {}
+function forget(name) {
+  delete memory[name];
+  try { localStorage.removeItem(name); } catch {}
 }
 const findAnimal = (id) => ANIMALS.find((a) => a.id === id);
 
@@ -554,7 +582,7 @@ function pickAnimal(animal, button) {
   if (state.picking) return;
   state.picking = true;
   button.classList.add("picked");
-  saveAnimal(animal.id);
+  save(ANIMAL_STORE, animal.id);
   state.animal = animal.id;
   setTimeout(() => {
     state.picking = false;
@@ -665,10 +693,13 @@ async function send() {
   button.disabled = true;
   button.textContent = "Sending…";
   try {
-    const result = await sendAnswers({ animal: state.animal, answers: state.answers });
+    const code = load(CODE_STORE);
+    const result = await sendAnswers({ code, animal: state.animal, answers: state.answers });
+    if (code) save(CHECKED_STORE, code);          // the Sheet took it, so the code is right
     showThanks(new Date(result.saved_at || Date.now()));
-  } catch {
-    showNotice("Your answers weren't sent. Check that the phone has internet, then tap Send again.");
+  } catch (error) {
+    if (error.message === "wrong code") showCard("wrong");   // the lab has replaced the code
+    else showNotice("Your answers weren't sent. Check that the phone has internet, then tap Send again.");
   } finally {
     state.sending = false;
     button.disabled = false;
@@ -697,11 +728,48 @@ function showThanks(when) {
   show("screen-thanks");
 }
 
+// --- The card's secret code -----------------------------------------------------
+// The QR code on the check-in card opens this page with ?k=CODE at the end of the link.
+// The phone keeps the code and sends it with the answers, and the Sheet saves answers
+// only when the code is right. Without a card, the questions never appear.
+const CARD_TEXT = {
+  checking: ["Checking your card…", "This takes a moment."],
+  missing: ["Please scan your check-in card",
+            "Open your phone's camera and point it at the square code on your check-in card."],
+  wrong: ["This card isn't working",
+          "Please scan your check-in card again. If it still doesn't work, ask the study team for a new card."],
+};
+
+function showCard(kind, animate = true) {
+  if (kind === "wrong") forget(CHECKED_STORE);
+  const [title, text] = CARD_TEXT[kind];
+  $("#card-title").textContent = title;
+  $("#card-text").textContent = text;
+  $("#card-mark").classList.toggle("busy", kind === "checking");
+  show("screen-card", animate);
+}
+
+// Asks the Apps Script whether the code is right: true or false,
+// or null when it can't tell (no internet, or the script hasn't been updated).
+async function checkCode(code) {
+  const stop = new AbortController();
+  const timer = setTimeout(() => stop.abort(), 10000);     // give up after 10 seconds
+  try {
+    const response = await fetch(`${API_URL}?check=${encodeURIComponent(code)}`, { signal: stop.signal });
+    const data = await response.json();
+    return typeof data.ok === "boolean" ? data.ok : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // --- Start: does this phone remember an animal? ----------------------------------
 function start(animate) {
   state.step = 0;
   state.answers = {};
-  const saved = loadAnimal();
+  const saved = load(ANIMAL_STORE);
   if (saved && findAnimal(saved)) {
     state.animal = saved;
     startQuestions(animate);
@@ -712,18 +780,38 @@ function start(animate) {
   }
 }
 
-$("#not-me").addEventListener("click", () => { forgetAnimal(); start(true); });
+// When the page opens: keep the code from the link, then check it
+async function boot() {
+  const fromLink = (new URLSearchParams(location.search).get("k") || "").trim().toUpperCase();
+  if (fromLink) save(CODE_STORE, fromLink);
+  if (DEMO) return start(false);                          // the demo needs no card
+
+  const code = load(CODE_STORE);
+  if (!code) return showCard("missing", false);           // opened without scanning a card
+  if (load(CHECKED_STORE) === code) {                     // this code worked here before:
+    start(false);                                         // start right away, check quietly
+    if (await checkCode(code) === false) showCard("wrong");
+    return;
+  }
+  showCard("checking", false);                            // a new code: check it first
+  const ok = await checkCode(code);
+  if (ok === false) return showCard("wrong");
+  if (ok) save(CHECKED_STORE, code);
+  start(true);                                            // no answer: carry on, Send checks again
+}
+
+$("#not-me").addEventListener("click", () => { forget(ANIMAL_STORE); start(true); });
 $("#q-next").addEventListener("click", next);
 $("#q-back").addEventListener("click", back);
 $("#demo-rescan").addEventListener("click", () => start(true));
-$("#demo-newphone").addEventListener("click", () => { forgetAnimal(); start(true); });
+$("#demo-newphone").addEventListener("click", () => { forget(ANIMAL_STORE); start(true); });
 
 $("#today").textContent = new Date().toLocaleDateString(undefined, {
   weekday: "long", month: "long", day: "numeric",
 });
 $("#demo-banner").hidden = !DEMO;
 $("#demo-panel").hidden = !DEMO;
-start(false);
+boot();
 </script>
 </body>
 </html>
