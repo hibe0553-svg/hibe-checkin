@@ -115,46 +115,38 @@ body.compact .labbar { padding-block: 10px; }
 }
 .lead { color: var(--ink-2); font-size: 1.25rem; }
 
-/* Screen 1: pick your animal */
-.animals {
+/* Screen 1: enter your ID (three boxes: two letters and a day) */
+.id-parts { display: flex; flex-direction: column; gap: 10px; }
+.id-part {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-}
-.animal {
-  flex: 0 0 calc((100% - 20px) / 3);
-  min-width: 0;
-  min-height: 6.25rem;
-  padding: 10px 4px 8px;
-  display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;                    /* very large text: the box moves under its label */
   align-items: center;
-  justify-content: center;
-  gap: 4px;
+  gap: 10px 14px;
+  padding: 12px 14px;
   background: var(--surface);
   border: 1.5px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  cursor: pointer;
-  transition: transform 0.12s ease, border-color 0.12s ease, background-color 0.12s ease;
 }
-@media (min-width: 520px) {
-  .animal { flex-basis: calc((100% - 30px) / 4); }
+.id-label { flex: 1 1 9rem; font-size: 1.25rem; line-height: 1.3; }
+.id-input {
+  flex: none;
+  width: 4.5rem;
+  height: 4rem;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
 }
-.animal:active { transform: scale(0.96); }
-.animal.picked { border-color: var(--accent); background: var(--accent-soft); }
-.animal .emoji { font-family: var(--emoji); font-size: 2.75rem; line-height: 1; }
-.animal .name { font-size: 1.0625rem; font-weight: 600; line-height: 1.15; text-align: center; }
-/* Larger text, small phones or a zoomed-in page: 2 animals per row */
-.big-text .animal { flex-basis: calc((100% - 10px) / 2); }
-.big-text .animal .name { font-size: 1.125rem; }
-@media (max-width: 340px) {
-  .animal { flex-basis: calc((100% - 10px) / 2); }
-}
-@media (min-width: 560px) {
-  .big-text .animal { flex-basis: calc((100% - 20px) / 3); }
-}
+.id-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.id-result { font-size: 1.375rem; text-align: center; }
+.id-result b { color: var(--accent); letter-spacing: 0.08em; }
+.id-example { color: var(--ink-2); font-size: 1.0625rem; text-align: center; text-wrap: balance; }
 
 /* Screen 2: the questions */
 .who {
@@ -175,11 +167,11 @@ body.compact .labbar { padding-block: 10px; }
   place-items: center;
   border-radius: 50%;
   background: var(--accent-soft);
-  font-family: var(--emoji);
-  font-size: 1.625rem;
-  line-height: 1;
+  color: var(--accent);
 }
-.who-name { flex: 1; min-width: 0; font-size: 1.25rem; font-weight: 700; }
+.avatar svg { width: 1.5rem; height: 1.5rem; }
+.who-name { flex: 1; min-width: 0; font-size: 1.25rem; font-weight: 700; letter-spacing: 0.04em; }
+.optional-note { color: var(--ink-2); font-size: 1.0625rem; font-weight: 600; }
 .link {
   min-height: 2.75rem;
   padding: 4px 8px;
@@ -275,6 +267,9 @@ body.compact .labbar { padding-block: 10px; }
   background: linear-gradient(to bottom, transparent, var(--bg));
   pointer-events: none;
 }
+/* On the ID screen the button stays in the page, so the phone's keyboard can't cover it */
+.actions.in-page { position: static; margin-inline: 0; padding: 4px 0 0; }
+.actions.in-page::before { content: none; }
 .btn {
   min-height: 4rem;
   padding: 0 22px;
@@ -355,16 +350,42 @@ body.compact .labbar { padding-block: 10px; }
     <p class="purpose" id="card-text"></p>
   </section>
 
-  <section class="screen" id="screen-pick" aria-labelledby="pick-title" hidden>
+  <!-- Screen 1: the participant makes their ID from their initials and birth day -->
+  <section class="screen" id="screen-id" aria-labelledby="id-title" hidden>
     <p class="eyebrow">Daily check-in · <span id="today"></span></p>
-    <h1 id="pick-title" tabindex="-1">Tap your animal</h1>
-    <p class="lead">This tells us who you are. Your phone will remember it next time.</p>
-    <div class="animals" id="animal-grid"></div>
+    <h1 id="id-title" tabindex="-1">Enter your ID</h1>
+    <p class="lead">Your ID is your initials and your birthday. Your phone will remember it next time.</p>
+    <div class="id-parts">
+      <label class="id-part">
+        <span class="id-label">First letter of your <b>first name</b></span>
+        <input class="id-input" id="id-first" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next">
+      </label>
+      <label class="id-part">
+        <span class="id-label">First letter of your <b>last name</b></span>
+        <input class="id-input" id="id-last" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next">
+      </label>
+      <label class="id-part">
+        <span class="id-label"><b>Day</b> you were born (1 to 31)</span>
+        <input class="id-input" id="id-day" inputmode="numeric" autocomplete="off" enterkeyhint="next">
+      </label>
+      <label class="id-part">
+        <span class="id-label"><b>Month</b> you were born (1 to 12)</span>
+        <input class="id-input" id="id-month" inputmode="numeric" autocomplete="off" enterkeyhint="done">
+      </label>
+    </div>
+    <p class="id-result" aria-live="polite">Your ID: <b id="id-preview">—</b></p>
+    <p class="id-example">Example: Mary Smith, born on March 14, has the ID <b>MS1403</b>.</p>
+    <p class="notice" id="id-notice" role="alert" hidden></p>
+    <div class="actions in-page">
+      <button type="button" class="btn btn-primary" id="id-continue">Continue</button>
+    </div>
   </section>
 
   <section class="screen" id="screen-question" aria-labelledby="q-text" hidden>
     <div class="who">
-      <span class="avatar" id="who-emoji" aria-hidden="true"></span>
+      <span class="avatar" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>
+      </span>
       <span class="who-name" id="who-name"></span>
       <button type="button" class="link" id="not-me">Not you?</button>
     </div>
@@ -373,10 +394,11 @@ body.compact .labbar { padding-block: 10px; }
       <div class="steps" id="q-steps" aria-hidden="true"></div>
     </div>
     <h1 id="q-text" tabindex="-1"></h1>
+    <p class="optional-note" id="q-optional" hidden>This question is optional. You can skip it.</p>
     <div class="options" id="q-options" role="radiogroup" aria-labelledby="q-text"></div>
     <p class="notice" id="q-notice" role="alert" hidden></p>
     <div class="actions">
-      <button type="button" class="btn btn-secondary" id="q-back" hidden>Back</button>
+      <button type="button" class="btn btn-secondary" id="q-back">Back</button>
       <button type="button" class="btn btn-primary" id="q-next">Next</button>
     </div>
   </section>
@@ -405,47 +427,14 @@ const API_URL = "https://script.google.com/macros/s/AKfycbxay1wf4zlL2AXRV7B2kMeG
 const DEMO = API_URL === "";
 
 // What the phone remembers between visits
-const ANIMAL_STORE = "hibe-checkin-animal";     // which animal this phone belongs to
+const ID_STORE = "hibe-checkin-id";             // the participant's ID, like MS14
 const CODE_STORE = "hibe-checkin-code";         // the secret code from the card's QR link
 const CHECKED_STORE = "hibe-checkin-checked";   // the last code the Sheet said was right
 
-// One animal per patient. Each patient is told their animal when they join.
-// Alphabetical, so patients and staff can find one quickly.
-const ANIMALS = [
-  { id: "bear", emoji: "🐻", name: "Bear" },
-  { id: "bee", emoji: "🐝", name: "Bee" },
-  { id: "butterfly", emoji: "🦋", name: "Butterfly" },
-  { id: "camel", emoji: "🐫", name: "Camel" },
-  { id: "cat", emoji: "🐈", name: "Cat" },
-  { id: "cow", emoji: "🐄", name: "Cow" },
-  { id: "crab", emoji: "🦀", name: "Crab" },
-  { id: "deer", emoji: "🦌", name: "Deer" },
-  { id: "dolphin", emoji: "🐬", name: "Dolphin" },
-  { id: "duck", emoji: "🦆", name: "Duck" },
-  { id: "elephant", emoji: "🐘", name: "Elephant" },
-  { id: "fish", emoji: "🐠", name: "Fish" },
-  { id: "fox", emoji: "🦊", name: "Fox" },
-  { id: "frog", emoji: "🐸", name: "Frog" },
-  { id: "giraffe", emoji: "🦒", name: "Giraffe" },
-  { id: "horse", emoji: "🐴", name: "Horse" },
-  { id: "ladybug", emoji: "🐞", name: "Ladybug" },
-  { id: "lion", emoji: "🦁", name: "Lion" },
-  { id: "monkey", emoji: "🐒", name: "Monkey" },
-  { id: "octopus", emoji: "🐙", name: "Octopus" },
-  { id: "owl", emoji: "🦉", name: "Owl" },
-  { id: "panda", emoji: "🐼", name: "Panda" },
-  { id: "penguin", emoji: "🐧", name: "Penguin" },
-  { id: "rabbit", emoji: "🐰", name: "Rabbit" },
-  { id: "rooster", emoji: "🐓", name: "Rooster" },
-  { id: "sheep", emoji: "🐑", name: "Sheep" },
-  { id: "snail", emoji: "🐌", name: "Snail" },
-  { id: "turtle", emoji: "🐢", name: "Turtle" },
-  { id: "whale", emoji: "🐳", name: "Whale" },
-  { id: "zebra", emoji: "🦓", name: "Zebra" },
-];
-
 // The questions, one per screen, in order. The answer words are what the Sheet stores.
 // "icon" adds a small picture to each answer; questions without it show words only.
+// "optional: true" lets people skip a question. Every question needs its "id" in
+// ANSWER_COLUMNS in Code.gs too, or its answers are not saved.
 const QUESTIONS = [
   { id: "feel", text: "How do you feel right now?", icon: "thermometer",
     options: ["Cold", "Cool", "Neutral", "Warm", "Hot"] },
@@ -461,6 +450,11 @@ const QUESTIONS = [
     options: ["Short-sleeved shirt", "Long-sleeved shirt", "Sweater or jacket", "Other"] },
   { id: "sensitivity", text: "Have you noticed any changes in how sensitive you are to heat or cold recently?",
     options: ["No change", "More sensitive", "Less sensitive", "Not sure"] },
+  { id: "location", text: "Where are you currently completing this survey?", icon: "place",
+    options: ["Senior center", "Home", "Other"] },
+  // Optional questions go here, for example:
+  // { id: "sleep", text: "How well did you sleep last night?", optional: true,
+  //   options: ["Well", "Okay", "Badly"] },
 ];
 
 // --- Small pictures for the answers ------------------------------------------
@@ -501,6 +495,15 @@ const ICONS = {
     };
     return `<svg viewBox="0 0 48 48" focusable="false" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">${shapes[value]}</svg>`;
   },
+  // A larger building with windows, a house, and "..." for other places
+  place(value) {
+    const shapes = {
+      "Senior center": `<path d="M5 41H43M9 41V17H39V41M7 17L24 7L41 17"/><path d="M20 41V32H28V41"/><path d="M14 22h4v4h-4zM22 22h4v4h-4zM30 22h4v4h-4zM14 31h3M31 31h3"/>`,
+      "Home": `<path d="M8 23L24 9L40 23"/><path d="M12 20V40H36V20"/><path d="M20 40V30H28V40"/>`,
+      "Other": `<circle cx="13" cy="25" r="2.5" fill="currentColor" stroke="none"/><circle cx="24" cy="25" r="2.5" fill="currentColor" stroke="none"/><circle cx="35" cy="25" r="2.5" fill="currentColor" stroke="none"/>`,
+    };
+    return `<svg viewBox="0 0 48 48" focusable="false" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">${shapes[value]}</svg>`;
+  },
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -521,11 +524,11 @@ function fitTextSize() {
   }
   size = Math.round(Math.min(Math.max(size, 18), 26));
   root.style.fontSize = `${size}px`;
-  root.classList.toggle("big-text", size >= 22);                 // 2 animals per row
+  root.classList.toggle("big-text", size >= 22);
 }
 fitTextSize();
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-const state = { animal: null, step: 0, answers: {}, picking: false, sending: false };
+const state = { id: null, step: 0, answers: {}, sending: false };
 const memory = {};   // used when the browser refuses to store anything
 
 // --- The phone's memory ----------------------------------------------------
@@ -540,7 +543,6 @@ function forget(name) {
   delete memory[name];
   try { localStorage.removeItem(name); } catch {}
 }
-const findAnimal = (id) => ANIMALS.find((a) => a.id === id);
 
 // --- Switching screens -------------------------------------------------------
 function show(id, animate = true) {
@@ -556,38 +558,86 @@ function show(id, animate = true) {
   if (animate) screen.querySelector("h1").focus({ preventScroll: true });
 }
 
-// --- Screen 1: pick your animal ----------------------------------------------
-function renderPicker() {
-  const grid = $("#animal-grid");
-  grid.replaceChildren();
-  for (const animal of ANIMALS) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "animal";
-    button.id = `animal-${animal.id}`;
-    const picture = document.createElement("span");
-    picture.className = "emoji";
-    picture.setAttribute("aria-hidden", "true");
-    picture.textContent = animal.emoji;
-    const name = document.createElement("span");
-    name.className = "name";
-    name.textContent = animal.name;
-    button.append(picture, name);
-    button.addEventListener("click", () => pickAnimal(animal, button));
-    grid.append(button);
-  }
+// --- Screen 1: the participant's ID --------------------------------------------
+// The ID is the first letter of the first name, the first letter of the last name,
+// the day of birth and the month of birth: Mary Smith, born on March 14, is MS1403.
+// Numbers below 10 get a 0 in front, so the same person always gets the same ID.
+const isId = (text) => /^[A-Z]{2}\d{4}$/.test(text || "");
+const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];   // January to December
+
+function makeId(first, last, day, month) {
+  const d = Number(day);
+  const m = Number(month);
+  if (!first || !last || m < 1 || m > 12 || d < 1 || d > DAYS_IN_MONTH[m - 1]) return null;
+  return first + last + String(d).padStart(2, "0") + String(m).padStart(2, "0");
 }
 
-function pickAnimal(animal, button) {
-  if (state.picking) return;
-  state.picking = true;
-  button.classList.add("picked");
-  save(ANIMAL_STORE, animal.id);
-  state.animal = animal.id;
-  setTimeout(() => {
-    state.picking = false;
-    startQuestions(true);
-  }, reduceMotion ? 0 : 250);
+// Keeps one capital letter: "m" becomes "M", and "é" becomes "E"
+function oneLetter(text) {
+  const plain = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+  return plain.replace(/[^A-Z]/g, "").slice(-1);
+}
+
+function showIdScreen(keepId, animate = true) {
+  const id = keepId && isId(state.id) ? state.id : "";       // keep it to fix a typo
+  $("#id-first").value = id.slice(0, 1);
+  $("#id-last").value = id.slice(1, 2);
+  $("#id-day").value = id ? String(Number(id.slice(2, 4))) : "";
+  $("#id-month").value = id ? String(Number(id.slice(4, 6))) : "";
+  showIdPreview();
+  show("screen-id", animate);
+}
+
+// "Your ID: MS1403" while they type, with ? for the parts still missing
+function showIdPreview() {
+  const first = $("#id-first").value;
+  const last = $("#id-last").value;
+  const day = $("#id-day").value;
+  const month = $("#id-month").value;
+  let preview = makeId(first, last, day, month);
+  if (!preview && (first || last || day || month)) {
+    preview = (first || "?") + (last || "?") + (day || "?") + (month || "?");
+  }
+  $("#id-preview").textContent = preview || "—";
+  $("#id-notice").hidden = true;
+}
+
+function letterTyped(event, nextBox) {
+  const box = event.target;
+  box.value = oneLetter(event.data || box.value);    // a new letter replaces the old one
+  if (box.value) nextBox.focus();
+  showIdPreview();
+}
+
+function numberTyped(event, nextBox) {
+  const box = event.target;
+  let digits = box.value.replace(/[^0-9]/g, "");
+  if (digits.length > 2) digits = (event.data || "").replace(/[^0-9]/g, "");   // start again
+  box.value = digits.slice(0, 2);
+  if (box.value.length === 2 && nextBox) nextBox.focus();
+  showIdPreview();
+}
+
+function saveIdAndStart() {
+  const first = $("#id-first").value;
+  const last = $("#id-last").value;
+  const day = Number($("#id-day").value);
+  const month = Number($("#id-month").value);
+  const id = makeId(first, last, day, month);
+  let problem = "";
+  if (!first) problem = "Please type the first letter of your first name.";
+  else if (!last) problem = "Please type the first letter of your last name.";
+  else if (day < 1 || day > 31) problem = "Please type the day you were born, a number from 1 to 31.";
+  else if (month < 1 || month > 12) problem = "Please type the month you were born, a number from 1 to 12. For example, March is 3.";
+  else if (!id) problem = "That date doesn't exist. Please check the day and the month.";
+  if (problem) {
+    $("#id-notice").textContent = problem;
+    $("#id-notice").hidden = false;
+    return;
+  }
+  state.id = id;
+  save(ID_STORE, id);
+  startQuestions(true);
 }
 
 // --- Screen 2: the questions --------------------------------------------------
@@ -601,9 +651,7 @@ function startQuestions(animate) {
 const isLast = () => state.step === QUESTIONS.length - 1;
 
 function renderQuestion() {
-  const animal = findAnimal(state.animal);
-  $("#who-emoji").textContent = animal.emoji;
-  $("#who-name").textContent = animal.name;
+  $("#who-name").textContent = `ID ${state.id}`;
 
   const question = QUESTIONS[state.step];
   $("#q-progress").textContent = `Question ${state.step + 1} of ${QUESTIONS.length}`;
@@ -615,6 +663,7 @@ function renderQuestion() {
     steps.append(bar);
   });
   $("#q-text").textContent = question.text;
+  $("#q-optional").hidden = !question.optional;
 
   const box = $("#q-options");
   box.replaceChildren();
@@ -644,16 +693,29 @@ function renderQuestion() {
     box.append(button);
   });
 
-  $("#q-back").hidden = state.step === 0;
-  $("#q-next").textContent = isLast() ? "Send" : "Next";
+  updateNextLabel();
   hideNotice();
 }
 
+// "Send" on the last question, "Skip" on an optional question with no answer, else "Next"
+function updateNextLabel() {
+  const question = QUESTIONS[state.step];
+  let label = "Next";
+  if (isLast()) label = "Send";
+  else if (question.optional && !state.answers[question.id]) label = "Skip";
+  $("#q-next").textContent = label;
+}
+
 function choose(question, value) {
-  state.answers[question.id] = value;
-  for (const button of $("#q-options").children) {
-    button.setAttribute("aria-checked", String(button.dataset.value === value));
+  if (question.optional && state.answers[question.id] === value) {
+    delete state.answers[question.id];          // optional: tapping the answer again clears it
+  } else {
+    state.answers[question.id] = value;
   }
+  for (const button of $("#q-options").children) {
+    button.setAttribute("aria-checked", String(button.dataset.value === state.answers[question.id]));
+  }
+  updateNextLabel();
   hideNotice();
 }
 
@@ -667,7 +729,7 @@ function hideNotice() { $("#q-notice").hidden = true; }
 async function next() {
   if (state.sending) return;
   const question = QUESTIONS[state.step];
-  if (!state.answers[question.id]) {
+  if (!state.answers[question.id] && !question.optional) {
     showNotice("Please tap one answer above.");
     return;
   }
@@ -681,7 +743,10 @@ async function next() {
 }
 
 function back() {
-  if (state.step === 0) return;
+  if (state.step === 0) {                 // the first question: back to the ID screen
+    showIdScreen(true);
+    return;
+  }
   state.step -= 1;
   renderQuestion();
   show("screen-question");
@@ -694,16 +759,17 @@ async function send() {
   button.textContent = "Sending…";
   try {
     const code = load(CODE_STORE);
-    const result = await sendAnswers({ code, animal: state.animal, answers: state.answers });
+    const result = await sendAnswers({ code, id: state.id, answers: state.answers });
     if (code) save(CHECKED_STORE, code);          // the Sheet took it, so the code is right
     showThanks(new Date(result.saved_at || Date.now()));
   } catch (error) {
     if (error.message === "wrong code") showCard("wrong");   // the lab has replaced the code
+    else if (error.message === "bad id") showIdScreen(false);
     else showNotice("Your answers weren't sent. Check that the phone has internet, then tap Send again.");
   } finally {
     state.sending = false;
     button.disabled = false;
-    button.textContent = isLast() ? "Send" : "Next";
+    updateNextLabel();
   }
 }
 
@@ -721,8 +787,7 @@ async function sendAnswers(payload) {
 
 // --- Screen 3: thank you -------------------------------------------------------
 function showThanks(when) {
-  const animal = findAnimal(state.animal);
-  $("#thanks-title").textContent = `Thank you, ${animal.name}!`;
+  $("#thanks-title").textContent = "Thank you!";
   const time = when.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   $("#thanks-time").textContent = `Your answers were saved at ${time}.`;
   show("screen-thanks");
@@ -765,18 +830,17 @@ async function checkCode(code) {
   }
 }
 
-// --- Start: does this phone remember an animal? ----------------------------------
+// --- Start: does this phone remember an ID? --------------------------------------
 function start(animate) {
   state.step = 0;
   state.answers = {};
-  const saved = load(ANIMAL_STORE);
-  if (saved && findAnimal(saved)) {
-    state.animal = saved;
+  const saved = load(ID_STORE);
+  if (isId(saved)) {
+    state.id = saved;
     startQuestions(animate);
   } else {
-    state.animal = null;
-    renderPicker();
-    show("screen-pick", animate);
+    state.id = null;
+    showIdScreen(false, animate);
   }
 }
 
@@ -800,11 +864,23 @@ async function boot() {
   start(true);                                            // no answer: carry on, Send checks again
 }
 
-$("#not-me").addEventListener("click", () => { forget(ANIMAL_STORE); start(true); });
+$("#id-first").addEventListener("input", (event) => letterTyped(event, $("#id-last")));
+$("#id-last").addEventListener("input", (event) => letterTyped(event, $("#id-day")));
+$("#id-day").addEventListener("input", (event) => numberTyped(event, $("#id-month")));
+$("#id-month").addEventListener("input", (event) => numberTyped(event, null));
+$("#id-first").addEventListener("keydown", (event) => { if (event.key === "Enter") $("#id-last").focus(); });
+$("#id-last").addEventListener("keydown", (event) => { if (event.key === "Enter") $("#id-day").focus(); });
+$("#id-day").addEventListener("keydown", (event) => { if (event.key === "Enter") $("#id-month").focus(); });
+$("#id-month").addEventListener("keydown", (event) => { if (event.key === "Enter") saveIdAndStart(); });
+$("#id-continue").addEventListener("click", saveIdAndStart);
+for (const box of document.querySelectorAll(".id-input")) {     // tapping a box selects what is
+  box.addEventListener("focus", () => setTimeout(() => box.setSelectionRange(0, box.value.length), 0));
+}                                                                // in it, so typing replaces it
+$("#not-me").addEventListener("click", () => showIdScreen(false));   // a new ID replaces the old one
 $("#q-next").addEventListener("click", next);
 $("#q-back").addEventListener("click", back);
 $("#demo-rescan").addEventListener("click", () => start(true));
-$("#demo-newphone").addEventListener("click", () => { forget(ANIMAL_STORE); start(true); });
+$("#demo-newphone").addEventListener("click", () => { forget(ID_STORE); start(true); });
 
 $("#today").textContent = new Date().toLocaleDateString(undefined, {
   weekday: "long", month: "long", day: "numeric",
