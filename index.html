@@ -375,6 +375,7 @@ body.compact .labbar { padding-block: 10px; }
     </div>
     <p class="id-result" aria-live="polite">Your ID: <b id="id-preview">—</b></p>
     <p class="id-example">Example: Mary Smith, born on March 14, has the ID <b>MS1403</b>.</p>
+    <p class="optional-note" id="id-nosave" hidden>Note: this browser is set not to save anything, so it will ask for your ID each time.</p>
     <p class="notice" id="id-notice" role="alert" hidden></p>
     <div class="actions in-page">
       <button type="button" class="btn btn-primary" id="id-continue">Continue</button>
@@ -452,9 +453,9 @@ const QUESTIONS = [
     options: ["No change", "More sensitive", "Less sensitive", "Not sure"] },
   { id: "location", text: "Where are you currently completing this survey?", icon: "place",
     options: ["Senior center", "Home", "Other"] },
-  // Optional questions go here, for example:
-  // { id: "sleep", text: "How well did you sleep last night?", optional: true,
-  //   options: ["Well", "Okay", "Badly"] },
+  // Optional questions: people can skip them. This one is a placeholder for now.
+  { id: "sleep", text: "How well did you sleep last night?", optional: true,
+    options: ["Well", "Okay", "Badly"] },
 ];
 
 // --- Small pictures for the answers ------------------------------------------
@@ -887,6 +888,18 @@ $("#today").textContent = new Date().toLocaleDateString(undefined, {
 });
 $("#demo-banner").hidden = !DEMO;
 $("#demo-panel").hidden = !DEMO;
+
+// Can this browser save anything? Some privacy settings block it, and then the ID can't be remembered
+function canSave() {
+  try {
+    localStorage.setItem("hibe-test", "1");
+    localStorage.removeItem("hibe-test");
+    return true;
+  } catch {
+    return false;
+  }
+}
+$("#id-nosave").hidden = canSave();
 boot();
 </script>
 </body>
